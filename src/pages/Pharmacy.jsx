@@ -5,15 +5,30 @@ import {
     ShoppingCart,
     AlertTriangle,
     History,
-    FileText
+    FileText,
+    Shield,
+    X
 } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 import StatCard from '../components/dashboard/StatCard';
 import { clsx } from 'clsx';
+import useStore from '../store/useStore';
 
 const Pharmacy = () => {
     const [activeTab, setActiveTab] = useState('inventory');
     const [narcoticVault, setNarcoticVault] = useState(false);
     const [interactionAlert, setInteractionAlert] = useState(null);
+    const [showPrescriptionModal, setShowPrescriptionModal] = useState(false); // BUG-002 fix
+    const logAction = useStore(state => state.logAction);
+
+    // BUG-002 fix: Drug interaction checker
+    const checkInteraction = (medication) => {
+        const interactions = {
+            'Amoxicillin 500mg': { message: 'Potential interaction with Warfarin — monitor INR closely.' },
+            'Ibuprofen 400mg': { message: 'Contraindicated with active GI bleed. Check patient history.' },
+        };
+        setInteractionAlert(interactions[medication] || null);
+    };
 
     const stats = [
         { title: 'Dispensed Today', value: '142', icon: FileText, color: 'bg-blue-600', trend: 'up', trendValue: '+12%' },
@@ -57,7 +72,16 @@ const Pharmacy = () => {
                                    <input type="password" placeholder="PHARMACIST PIN" className="bg-white/5 border border-white/10 rounded-2xl p-4 text-center text-xs font-black text-white outline-none focus:border-blue-500 transition-all" />
                                    <input type="password" placeholder="DOCTOR PIN" className="bg-white/5 border border-white/10 rounded-2xl p-4 text-center text-xs font-black text-white outline-none focus:border-emerald-500 transition-all" />
                                 </div>
-                                <button className="w-full py-4 bg-blue-600 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest shadow-xl shadow-blue-500/20 active:scale-95 transition-all">Authorize Dispense</button>
+                                <button 
+                                  onClick={() => {
+                                    logAction('NARCOTIC_DISPENSED', 'PHARMACY', { med: 'Morphine 10mg', qty: 1 });
+                                    alert('Dual-Auth Successful. Narcotic Recorded in Ledger.');
+                                    setNarcoticVault(false);
+                                  }}
+                                  className="w-full py-4 bg-blue-600 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest shadow-xl shadow-blue-500/20 active:scale-95 transition-all"
+                                >
+                                    Authorize Dispense
+                                </button>
                              </div>
                          </div>
                     </motion.div>
@@ -209,7 +233,16 @@ const Pharmacy = () => {
 
                         <div className="flex justify-end gap-3 mt-6">
                             <button onClick={() => setShowPrescriptionModal(false)} className="px-4 py-2 text-slate-600 hover:bg-slate-100 rounded-lg">Cancel</button>
-                            <button className="px-4 py-2 bg-primary text-white rounded-lg">Dispense</button>
+                            <button 
+                                onClick={() => {
+                                    logAction('PRESCRIPTION_DISPENSED', 'PHARMACY', { med: 'Amoxicillin 500mg' });
+                                    alert('Medication Dispensed. EMR Updated.');
+                                    setShowPrescriptionModal(false);
+                                }}
+                                className="px-4 py-2 bg-blue-600 font-bold text-white rounded-lg"
+                            >
+                                Dispense
+                            </button>
                         </div>
                     </div>
                 </div>

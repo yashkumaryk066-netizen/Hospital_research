@@ -98,6 +98,8 @@ function App() {
           <Route path="physio" element={<Physiotherapy />} />
           <Route path="nursing" element={<NursingWorkbench />} />
           <Route path="ot-icu" element={<RoleGuard allowedRoles={['Doctor', 'Super Admin']}><OTICUManagement /></RoleGuard>} />
+          <Route path="ot" element={<RoleGuard allowedRoles={['Doctor', 'Super Admin']}><OTBooking /></RoleGuard>} /> {/* BUG-007 fix */}
+          <Route path="discharge" element={<DischargeManager />} /> {/* BUG-007 fix */}
 
           {/* Specialized Modules (Clinical staff only) */}
           <Route path="neonatal" element={<NeonatalCare />} />
@@ -122,6 +124,14 @@ function App() {
           {/* Masters & Profile */}
           <Route path="doctors" element={<Masters />} />
           <Route path="patients/profile" element={<PatientProfile />} />
+          {/* BUG-007 fix: Masters sub-routes */}
+          <Route path="masters/services" element={<Masters />} />
+          <Route path="masters/medications" element={<Masters />} />
+          <Route path="masters/wards" element={<Masters />} />
+          <Route path="masters/diagnosis" element={<Masters />} />
+          {/* BUG-007 fix: Missing admin routes */}
+          <Route path="insurance" element={<RoleGuard allowedRoles={['Super Admin']}><HospitalManagement defaultTab="insurance" /></RoleGuard>} />
+          <Route path="ipd/transfer" element={<RoleGuard allowedRoles={['Doctor', 'Nurse', 'Super Admin']}><HospitalManagement defaultTab="transfer" /></RoleGuard>} />
           
           {/* Default Catch-all */}
           <Route path="*" element={<NotFound />} />

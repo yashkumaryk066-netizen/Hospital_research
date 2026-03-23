@@ -21,6 +21,13 @@ import { clsx } from 'clsx';
 const OPDRegistrationModal = ({ isOpen, onClose }) => {
     const [appointmentType, setAppointmentType] = useState('Consultation');
     const [gender, setGender] = useState('Female');
+    const [submitted, setSubmitted] = useState(false); // BUG-016 fix
+
+    const handleSubmit = (e) => { // BUG-016 fix: functional submit
+        e.preventDefault();
+        setSubmitted(true);
+        setTimeout(() => { setSubmitted(false); onClose(); }, 1800);
+    };
 
     if (!isOpen) return null;
 
@@ -212,9 +219,10 @@ const OPDRegistrationModal = ({ isOpen, onClose }) => {
 
                     {/* Checkboxes from Figma */}
                     <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                        {/* BUG-008 fix: Removed duplicate 'Enable Receipt' */}
                         {[
-                          'Enable Prescription', 'Enable Receipt', 'Enable Radiology Report', 
-                          'Enable Follow-up Slip', 'Enable Receipt', 'Print Receipt'
+                          'Enable Prescription', 'Enable Receipt', 'Enable Radiology Report',
+                          'Enable Follow-up Slip', 'Print Receipt'
                         ].map((label, idx) => (
                           <div key={idx} className="flex items-center gap-3">
                             <input type="checkbox" id={`cb-${idx}`} className="w-5 h-5 rounded-lg accent-blue-600 cursor-pointer" defaultChecked={idx === 0 || idx === 1 || idx === 3} />
@@ -226,7 +234,9 @@ const OPDRegistrationModal = ({ isOpen, onClose }) => {
                     {/* Actions */}
                     <div className="flex flex-col sm:flex-row items-center justify-end gap-3 pt-6 border-t border-slate-50">
                         <button type="button" onClick={onClose} className="w-full sm:w-auto px-8 py-4 text-slate-500 font-black uppercase text-xs tracking-widest hover:bg-slate-50 rounded-2xl transition-all border border-slate-100">Cancel</button>
-                        <button className="w-full sm:w-auto px-10 py-4 bg-blue-600 text-white rounded-2xl text-xs font-black uppercase tracking-widest shadow-xl shadow-blue-500/30 hover:scale-105 transition-all">Book Appointment</button>
+                        <button type="submit" className={`w-full sm:w-auto px-10 py-4 rounded-2xl text-xs font-black uppercase tracking-widest shadow-xl transition-all hover:scale-105 ${submitted ? 'bg-green-600 text-white' : 'bg-blue-600 text-white shadow-blue-500/30'}`}>
+                            {submitted ? '✓ Appointment Booked!' : 'Book Appointment'}
+                        </button>
                     </div>
                 </form>
             </motion.div>

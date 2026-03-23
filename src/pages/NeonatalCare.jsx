@@ -4,7 +4,8 @@ import {
   ChevronRight, CheckCircle, User, Shield
 } from 'lucide-react';
 import { clsx } from 'clsx';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
+import useStore from '../store/useStore';
 
 // APGAR Score Calculator
 const APGAR_CRITERIA = [
@@ -64,12 +65,19 @@ const NeonatalCare = () => {
   const [apgar5, setApgar5] = useState([2, 2, 2, 2, 2]);
   const [isRegistering, setIsRegistering] = useState(false);
   const [isRegistered, setIsRegistered] = useState(false);
+  const logAction = useStore(state => state.logAction);
 
   const sumApgar = (arr) => arr.reduce((a, b) => a + b, 0);
 
   const handleBirthSubmit = async () => {
     setIsRegistering(true);
     await new Promise(r => setTimeout(r, 1200));
+    logAction('BIRTH_REGISTERED', 'NEONATAL', { 
+      mother: 'Mrs. Priya Sharma', 
+      apgar1: sumApgar(apgar1), 
+      apgar5: sumApgar(apgar5),
+      babySex: 'Female'
+    });
     setIsRegistering(false);
     setIsRegistered(true);
   };
@@ -412,7 +420,15 @@ const NeonatalCare = () => {
                            <p className="text-xs font-medium text-slate-400 leading-relaxed italic mb-6">
                               "Safety check performed every 6 hours. Last verified by Sr. Anjali at 10:00 AM."
                            </p>
-                           <button className="px-8 py-4 bg-white text-slate-900 rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-emerald-500 hover:text-white transition-all">Manual Verification Scan</button>
+<button 
+                               onClick={() => {
+                                   logAction('MOTHER_BABY_TAG_VERIFIED', 'SECURITY', { motherTag: 'RFID-M-889012', babyTag: 'RFID-B-889012' });
+                                   alert('Mother-Baby Tag Match Verified. Security Check Logged.');
+                               }}
+                               className="px-8 py-4 bg-white text-slate-900 rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-emerald-500 hover:text-white transition-all"
+                            >
+                                Manual Verification Scan
+                            </button>
                         </div>
                     </div>
                  </div>

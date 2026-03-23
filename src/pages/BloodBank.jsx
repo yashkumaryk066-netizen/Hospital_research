@@ -5,6 +5,7 @@ import {
 } from 'lucide-react';
 import { clsx } from 'clsx';
 import { motion, AnimatePresence } from 'framer-motion';
+import useStore from '../store/useStore';
 
 const BLOOD_GROUPS = [
   { type: 'A+', units: 14, reserved: 2, status: 'Stable' },
@@ -24,6 +25,7 @@ const BloodBank = () => {
     const [mtpModal, setMtpModal] = useState(false);
     const [requestHub, setRequestHub] = useState(false);
     const [donorModal, setDonorModal] = useState(false);
+    const logAction = useStore(state => state.logAction);
 
     const tabs = [
         { id: 'inventory', label: 'Inventory (ISO-9001)', icon: Droplets },
@@ -84,7 +86,10 @@ const BloodBank = () => {
                                 </div>
                              </div>
 
-                             <button onClick={() => setRequestHub(false)} className="w-full py-5 bg-rose-600 text-white rounded-[2rem] font-black uppercase tracking-[0.2em] shadow-xl shadow-rose-500/30 active:scale-95 transition-all">Trigger Crossmatch (Lab Sync)</button>
+                             <button onClick={() => {
+                                 logAction('BLOOD_CROSSMATCH_TRIGGERED', 'BLOOD_BANK', { urgency: 'STAT' });
+                                 setRequestHub(false);
+                             }} className="w-full py-5 bg-rose-600 text-white rounded-[2rem] font-black uppercase tracking-[0.2em] shadow-xl shadow-rose-500/30 active:scale-95 transition-all">Trigger Crossmatch (Lab Sync)</button>
                          </div>
                     </motion.div>
                 )}
@@ -117,7 +122,10 @@ const BloodBank = () => {
 
                             <div className="bg-slate-900 p-10 rounded-[2.5rem] text-white space-y-6">
                                 <p className="text-center text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-4 italic leading-relaxed">"I hereby authorize emergency bypass of crossmatch. Chain of custody protocol enforced."</p>
-                                <button onClick={() => setMtpModal(false)} className="w-full py-5 bg-white text-slate-900 rounded-2xl text-[10px] font-black uppercase tracking-[0.3em] shadow-xl hover:bg-rose-600 hover:text-white transition-all active:scale-95">Doctor Signature (STAT)</button>
+                                <button onClick={() => {
+                                    logAction('MTP_DOCTOR_AUTHORIZED', 'BLOOD_BANK', { protocol: 'v4.2' });
+                                    setMtpModal(false);
+                                }} className="w-full py-5 bg-white text-slate-900 rounded-2xl text-[10px] font-black uppercase tracking-[0.3em] shadow-xl hover:bg-rose-600 hover:text-white transition-all active:scale-95">Doctor Signature (STAT)</button>
                             </div>
                         </div>
                     </motion.div>
@@ -135,7 +143,10 @@ const BloodBank = () => {
                 </div>
                 <div className="flex items-center gap-3">
                     <button 
-                        onClick={() => setMtpModal(true)}
+                        onClick={() => {
+                            logAction('MTP_PROTOCOL_ACTIVATED', 'BLOOD_BANK', { priority: 'P0' });
+                            setMtpModal(true);
+                        }}
                         className="px-8 py-4 bg-rose-700 text-white rounded-[1.5rem] text-xs font-black uppercase tracking-widest shadow-xl shadow-rose-900/30 flex items-center gap-3 hover:bg-rose-600 transition-all border border-rose-500 group"
                     >
                         <AlertTriangle size={16} className="group-hover:animate-pulse" /> ACTIVATE MTP
@@ -335,7 +346,12 @@ const DiscardView = () => (
                     <p className="text-4xl font-black">01</p>
                  </div>
              </div>
-             <button className="mt-10 px-12 py-6 bg-white text-slate-900 rounded-[3rem] text-[10px] font-black uppercase tracking-[0.3em] shadow-[0_0_50px_rgba(255,255,255,0.2)] hover:bg-rose-500 hover:text-white transition-all">Generate Disposal Authority Log</button>
+             <button 
+                onClick={() => {
+                    logAction('BLOOD_DISPOSAL_LOG_GENERATED', 'BLOOD_BANK', { totalUnits: '08' });
+                    alert('Regulatory Disposal Log finalized and archived.');
+                }}
+                className="mt-10 px-12 py-6 bg-white text-slate-900 rounded-[3rem] text-[10px] font-black uppercase tracking-[0.3em] shadow-[0_0_50px_rgba(255,255,255,0.2)] hover:bg-rose-500 hover:text-white transition-all">Generate Disposal Authority Log</button>
          </div>
     </div>
 );

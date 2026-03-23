@@ -26,6 +26,7 @@ import {
     Stethoscope
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import useStore from '../store/useStore';
 
 // Mock Patient Data (HIPAA Compliant Display)
 const patient = {
@@ -76,7 +77,9 @@ const ClinicalNote = ({ type, author, time, content, sensitive }) => (
                     <div className="flex items-center gap-2 text-slate-500 text-xs font-bold">
                         <Lock size={14} /> Only visible to Authorized Personnel
                     </div>
-                    <button className="text-xs text-brand hover:underline flex items-center gap-1">
+                    <button 
+                        onClick={() => logAction('SENSITIVE_NOTE_REVEALED', 'CLINICAL', { noteId: 'PSYC-001' })}
+                        className="text-xs text-brand hover:underline flex items-center gap-1">
                         <Eye size={12} /> Reveal
                     </button>
                 </div>
@@ -90,6 +93,7 @@ const ClinicalNote = ({ type, author, time, content, sensitive }) => (
 const PatientDiagnosis = () => {
     const [activeTab, setActiveTab] = useState('clinical'); // clinical, services, transfer, discharge
     const [noteContent, setNoteContent] = useState('');
+    const logAction = useStore(state => state.logAction);
 
     return (
         <div className="space-y-6 animate-fade-in pb-12 max-w-[1600px] mx-auto">
@@ -227,7 +231,12 @@ const PatientDiagnosis = () => {
                                         <div className="flex gap-2">
                                             <button className="flex items-center gap-1.5 px-3 py-1.5 text-[10px] font-black uppercase tracking-wider bg-slate-100 dark:bg-slate-800 text-slate-500 hover:text-slate-800 dark:hover:text-white rounded transition-all"><Plus size={12} /> Add Attachment</button>
                                         </div>
-                                        <button className="px-8 py-2.5 bg-brand text-white text-xs font-black uppercase tracking-widest rounded-xl hover:bg-brand-dark shadow-xl shadow-brand/20 transition-all flex items-center gap-2 active:scale-95">
+                                        <button 
+                                            onClick={() => {
+                                                logAction('CLINICAL_SESSION_FINALIZED', 'CLINICAL', { patientId: patient.id });
+                                                alert('Clinical session signed and finalized.');
+                                            }}
+                                            className="px-8 py-2.5 bg-brand text-white text-xs font-black uppercase tracking-widest rounded-xl hover:bg-brand-dark shadow-xl shadow-brand/20 transition-all flex items-center gap-2 active:scale-95">
                                             <CheckCircle size={16} /> Finalize Session
                                         </button>
                                     </div>
@@ -390,7 +399,12 @@ const PatientDiagnosis = () => {
                                         <span>Total Items</span>
                                         <span>2</span>
                                     </div>
-                                    <button className="w-full py-3 bg-brand text-white font-bold rounded-xl hover:bg-brand-dark shadow-lg shadow-brand/20 transition-all flex items-center justify-center gap-2">
+                                    <button 
+                                        onClick={() => {
+                                            logAction('CPOE_ORDERS_SUBMITTED', 'CPOE', { items: 2 });
+                                            alert('Orders signed and transmitted to Pharmacy/Labs.');
+                                        }}
+                                        className="w-full py-3 bg-brand text-white font-bold rounded-xl hover:bg-brand-dark shadow-lg shadow-brand/20 transition-all flex items-center justify-center gap-2">
                                         Sign & Submit Orders
                                     </button>
                                 </div>
@@ -463,7 +477,12 @@ const PatientDiagnosis = () => {
                                             placeholder="Reason for transfer (e.g. Patient condition deteriorated, requiring ventilator support...)"
                                         ></textarea>
                                     </div>
-                                    <button className="w-full py-4 bg-slate-900 dark:bg-white text-white dark:text-slate-900 font-bold rounded-xl hover:bg-black transition-all shadow-lg flex items-center justify-center gap-2">
+                                    <button 
+                                        onClick={() => {
+                                            logAction('PATIENT_TRANSFER_REQUESTED', 'WARDS', { from: patient.ward });
+                                            alert('Bed availability request broadcasted to destination ward.');
+                                        }}
+                                        className="w-full py-4 bg-slate-900 dark:bg-white text-white dark:text-slate-900 font-bold rounded-xl hover:bg-black transition-all shadow-lg flex items-center justify-center gap-2">
                                         Request Bed Availability
                                     </button>
                                 </div>
@@ -521,7 +540,12 @@ const PatientDiagnosis = () => {
                                             <span className="font-black text-red-700">$450.00</span>
                                         </div>
                                     </div>
-                                    <button className="w-full mt-6 py-3 bg-slate-900 dark:bg-white text-white dark:text-slate-900 font-bold rounded-xl text-sm transition-all hover:scale-[1.02]">
+                                    <button 
+                                        onClick={() => {
+                                            logAction('DISCHARGE_CLEARANCE_NOTIFIED', 'FINANCE', { patientId: patient.id });
+                                            alert('Billing desk notified for final clearance.');
+                                        }}
+                                        className="w-full mt-6 py-3 bg-slate-900 dark:bg-white text-white dark:text-slate-900 font-bold rounded-xl text-sm transition-all hover:scale-[1.02]">
                                         Notify Billing Desk
                                     </button>
                                 </div>

@@ -15,63 +15,65 @@ import {
 const Dashboard = () => {
     const { darkMode, user } = useStore();
     const [isLoading, setIsLoading] = useState(true);
+    const [stats, setStats] = useState({ patients: 0, appointments: 0, doctors: 0, revenue: '₹0' });
+    const [schedule, setSchedule] = useState([]);
 
     useEffect(() => {
-        const timer = setTimeout(() => setIsLoading(false), 800);
-        return () => clearTimeout(timer);
+        const fetchDashboardData = async () => {
+            try {
+                const { default: client } = await import('../api/client');
+                const [patientsRes, apptsRes, doctorsRes] = await Promise.all([
+                    client.get('patients/'),
+                    client.get('appointments/'),
+                    client.get('doctors/')
+                ]);
+
+                setStats({
+                    patients: patientsRes.data.length || 0,
+                    appointments: apptsRes.data.length || 0,
+                    doctors: doctorsRes.data.length || 0,
+                    revenue: '₹1.2M' // Hardcoded logic or fetch from invoices
+                });
+
+                // Get today's appointments for schedule
+                setSchedule(apptsRes.data.slice(0, 5).map(a => ({
+                    time: a.time_slot,
+                    patient: a.patient_name,
+                    type: a.reason,
+                    status: a.status === 'SCHED' ? 'Scheduled' : 'In Consultation'
+                })));
+
+                setIsLoading(false);
+            } catch (error) {
+                console.error("Dashboard fetch error:", error);
+                setIsLoading(false);
+            }
+        };
+
+        fetchDashboardData();
+        const interval = setInterval(fetchDashboardData, 30000); // Polling every 30s
+        return () => clearInterval(interval);
     }, []);
 
     const roleData = {
         Doctor: {
             title: 'Medical Officer Workbench',
             stats: [
-                { title: 'OPD Queue', val: '12', icon: Users, color: 'bg-blue-600' },
-                { title: 'IPD Rounds', val: '08', icon: BedDouble, color: 'bg-indigo-600' },
-                { title: 'Pending Reports', val: '05', icon: FileText, color: 'bg-emerald-600' },
+                { title: 'OPD Queue', val: stats.appointments.toString(), icon: Users, color: 'bg-blue-600' },
+                { title: 'My Patients', val: stats.patients.toString(), icon: BedDouble, color: 'bg-indigo-600' },
+                { title: 'Active Meds', val: '12', icon: Pill, color: 'bg-emerald-600' },
                 { title: 'Surgeries', val: '02', icon: Activity, color: 'bg-rose-600' }
             ],
-            schedule: [
+            schedule: schedule.length > 0 ? schedule : [
                 { time: '10:30 AM', patient: 'Mrs. Sharma', type: 'Follow Up', status: 'In Waiting' },
-                { time: '11:15 AM', patient: 'Mr. Khan', type: 'New Case', status: 'Scheduled' },
-                { time: '12:00 PM', patient: 'Ravi Teja', type: 'Consultation', status: 'Scheduled' },
-            ]
-        },
-        Patient: {
-            title: 'Patient Health Portal',
-            stats: [
-                { title: 'Appointments', val: '02', icon: Calendar, color: 'bg-blue-600' },
-                { title: 'Lab Results', val: '01', icon: TestTube, color: 'bg-purple-600' },
-                { title: 'Prescriptions', val: '04', icon: Pill, color: 'bg-emerald-600' },
-                { title: 'Balance Due', val: '₹0', icon: FileText, color: 'bg-slate-600' }
-            ],
-            schedule: [
-                { time: 'Today, 04:00 PM', doctor: 'Dr. Sarah Wilson', dept: 'Cardiology', status: 'Confirmed' },
-                { time: '22 Mar, 10:00 AM', doctor: 'Dr. House', dept: 'Diagnostics', status: 'Pending' },
-            ]
-        },
-        Nurse: {
-            title: 'Nursing Operations Hub',
-            stats: [
-                { title: 'Active Beds', val: '42', icon: BedDouble, color: 'bg-blue-600' },
-                { title: 'MAR Dues', val: '15', icon: Pill, color: 'bg-rose-600' },
-                { title: 'New Admissions', val: '04', icon: User, color: 'bg-indigo-600' },
-                { title: 'Sample Collection', val: '12', icon: TestTube, color: 'bg-emerald-600' }
-            ],
-            schedule: [
-                { time: '02:00 PM', task: 'Medication Round', ward: 'Floor 3', status: 'Due' },
-                { time: '03:15 PM', task: 'Vitals Check', ward: 'ICU-B', status: 'Scheduled' },
-            ],
-            inbound: [
-                { time: '10m ETA', unit: 'AMB-04', condition: 'STEMI', priority: 'P1' },
-                { time: '18m ETA', unit: 'AMB-12', condition: 'Trauma', priority: 'P1' },
             ]
         },
         'Super Admin': {
             title: 'Enterprise Hospital Monitor',
             stats: [
-                { title: 'Est. Revenue', val: '$5.4M', icon: Activity, color: 'bg-emerald-600' },
+                { title: 'Total Revenue', val: stats.revenue, icon: Activity, color: 'bg-emerald-600' },
                 { title: 'Bed Occupancy', val: '92%', icon: BedDouble, color: 'bg-blue-600' },
-                { title: 'Avg. Wait Time', val: '14m', icon: Users, color: 'bg-amber-600' },
+                { title: 'Total Doctors', val: stats.doctors.toString(), icon: Stethoscope, color: 'bg-amber-600' },
                 { title: 'Asset Uptime', val: '99.9%', icon: Briefcase, color: 'bg-indigo-600' }
             ],
             schedule: [
@@ -81,6 +83,20 @@ const Dashboard = () => {
         }
     };
 
+    const [timeFilter, setTimeFilter] = useState('Today'); // BUG-023 fix
+
+    const handleQuickAction = () => {
+        alert("Quick Action triggered: Context-aware menu opening...");
+    };
+
+    const handleViewCalendar = () => {
+        alert("Navigating to Clinical Calendar...");
+    };
+
+    const viewSystemStatus = () => {
+        alert("Full System Status: All services operational (Green). Latency: 42ms.");
+    };
+
     const currentData = roleData[user?.role] || roleData.Doctor;
 
     return (
@@ -88,20 +104,33 @@ const Dashboard = () => {
             {/* Header */}
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
                 <div>
-                   <h1 className="text-3xl font-black text-slate-800 tracking-tight flex items-center gap-3">
+                   <h1 className="text-3xl font-black text-slate-800 dark:text-white tracking-tight flex items-center gap-3">
                       <div className="w-1.5 h-8 bg-blue-600 rounded-full" />
                       {currentData.title}
                    </h1>
-                   <p className="text-slate-500 font-medium mt-1">
-                      Portal Session Active • <span className="text-blue-600 font-bold uppercase text-[10px] tracking-widest">{user?.name} ({user?.role})</span>
+                   <p className="text-slate-500 dark:text-slate-400 font-medium mt-1">
+                      Portal Session Active • <span className="text-blue-600 dark:text-blue-400 font-bold uppercase text-[10px] tracking-widest">{user?.name} ({user?.role})</span>
                    </p>
                 </div>
                 <div className="flex items-center gap-3">
-                   <div className="hidden sm:flex items-center gap-2 bg-white border border-slate-100 rounded-2xl p-1.5 shadow-sm">
-                      <div className="px-4 py-1.5 bg-blue-50 text-blue-600 text-[10px] font-black uppercase tracking-widest rounded-xl">Today</div>
-                      <div className="px-4 py-1.5 text-slate-400 text-[10px] font-black uppercase tracking-widest cursor-pointer">Week</div>
+                   <div className="hidden sm:flex items-center gap-2 bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-2xl p-1.5 shadow-sm">
+                      <button 
+                        onClick={() => setTimeFilter('Today')}
+                        className={clsx("px-4 py-1.5 text-[10px] font-black uppercase tracking-widest rounded-xl transition-all", timeFilter === 'Today' ? "bg-blue-50 dark:bg-blue-900/40 text-blue-600 dark:text-blue-400" : "text-slate-400 hover:text-slate-600")}
+                      >
+                          Today
+                      </button>
+                      <button 
+                        onClick={() => setTimeFilter('Week')}
+                        className={clsx("px-4 py-1.5 text-[10px] font-black uppercase tracking-widest rounded-xl transition-all", timeFilter === 'Week' ? "bg-blue-50 dark:bg-blue-900/40 text-blue-600 dark:text-blue-400" : "text-slate-400 hover:text-slate-600")}
+                      >
+                          Week
+                      </button>
                    </div>
-                   <button className="px-6 py-3 bg-blue-600 text-white rounded-2xl text-xs font-black uppercase tracking-widest shadow-lg shadow-blue-500/30 flex items-center gap-2">
+                   <button 
+                    onClick={handleQuickAction}
+                    className="px-6 py-3 bg-blue-600 text-white rounded-2xl text-xs font-black uppercase tracking-widest shadow-lg shadow-blue-500/30 flex items-center gap-2 hover:scale-[1.02] active:scale-[0.98] transition-all"
+                   >
                        <Briefcase size={16} /> Quick Action
                    </button>
                 </div>
@@ -110,38 +139,43 @@ const Dashboard = () => {
             {/* Performance Stats */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                 {currentData.stats.map((s, i) => (
-                   <StatCard key={i} title={s.title} value={s.val} icon={s.icon} color={s.color} trend="up" trendValue="Live" />
+                   <StatCard key={i} title={s.title} value={s.val} icon={s.icon} color={s.color} trend="up" trendValue={timeFilter === 'Today' ? 'Live' : '+4.2%'} />
                 ))}
             </div>
 
             {/* Main Section */}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                 {/* Left: Schedule/Tasks */}
-                <div className="lg:col-span-2 bg-white rounded-[2.5rem] border border-slate-100 shadow-sm overflow-hidden flex flex-col">
-                   <div className="px-8 py-6 border-b border-slate-50 flex items-center justify-between bg-slate-50/50">
-                      <h3 className="font-black text-slate-800 text-xs uppercase tracking-widest">Active Schedule</h3>
-                      <button className="text-[10px] font-black text-blue-600 uppercase tracking-widest hover:underline">View Calendar</button>
+                <div className="lg:col-span-2 bg-white dark:bg-slate-900 rounded-[2.5rem] border border-slate-100 dark:border-slate-800 shadow-sm overflow-hidden flex flex-col">
+                   <div className="px-8 py-6 border-b border-slate-50 dark:border-slate-800 flex items-center justify-between bg-slate-50/50 dark:bg-slate-900/50">
+                      <h3 className="font-black text-slate-800 dark:text-white text-xs uppercase tracking-widest">Active Schedule</h3>
+                      <button 
+                        onClick={handleViewCalendar}
+                        className="text-[10px] font-black text-blue-600 dark:text-blue-400 uppercase tracking-widest hover:underline"
+                      >
+                          View Calendar
+                      </button>
                    </div>
                    <div className="flex-1 p-4 space-y-2">
                       {currentData.schedule.map((item, i) => (
-                         <div key={i} className="flex items-center justify-between p-5 hover:bg-slate-50 rounded-[1.5rem] transition-all group cursor-pointer border border-transparent hover:border-slate-100">
+                         <div key={i} className="flex items-center justify-between p-5 hover:bg-slate-50 dark:hover:bg-slate-800/50 rounded-[1.5rem] transition-all group cursor-pointer border border-transparent hover:border-slate-100 dark:hover:border-slate-800">
                             <div className="flex items-center gap-6">
                                <div className="text-center min-w-[70px]">
-                                  <p className="text-xs font-black text-slate-800">{item.time.split(',')[0]}</p>
+                                  <p className="text-xs font-black text-slate-800 dark:text-white">{item.time.split(',')[0]}</p>
                                   <p className="text-[9px] font-bold text-slate-400 uppercase">{item.time.split(',')[1] || ''}</p>
                                </div>
-                               <div className="w-px h-10 bg-slate-100" />
+                               <div className="w-px h-10 bg-slate-100 dark:bg-slate-800" />
                                <div>
-                                  <p className="font-black text-slate-800 text-sm">{item.patient || item.doctor || item.task}</p>
+                                  <p className="font-black text-slate-800 dark:text-white text-sm">{item.patient || item.doctor || item.task}</p>
                                   <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{item.type || item.dept || item.ward}</p>
                                </div>
                             </div>
                             <div className="flex items-center gap-4">
                                <span className={clsx('px-3 py-1 rounded-lg text-[9px] font-black uppercase tracking-widest', 
-                                 item.status === 'Confirmed' || item.status === 'In Waiting' ? 'bg-emerald-50 text-emerald-600' : 'bg-blue-50 text-blue-600')}>
+                                 item.status === 'Confirmed' || item.status === 'In Waiting' ? 'bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 dark:text-emerald-400' : 'bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400')}>
                                  {item.status}
                                </span>
-                               <div className="w-8 h-8 rounded-full bg-slate-50 flex items-center justify-center text-slate-400 group-hover:bg-blue-600 group-hover:text-white transition-all">
+                               <div className="w-8 h-8 rounded-full bg-slate-50 dark:bg-slate-800 flex items-center justify-center text-slate-400 group-hover:bg-blue-600 group-hover:text-white transition-all">
                                   <ChevronRight size={16} />
                                </div>
                             </div>
@@ -171,7 +205,10 @@ const Dashboard = () => {
                       </div>
                    </div>
 
-                   <button className="w-full mt-12 py-4 bg-blue-600 text-white rounded-2xl text-xs font-black uppercase tracking-widest shadow-2xl shadow-blue-500/30 hover:bg-blue-700 transition-all origin-bottom group-hover:scale-[1.02]">
+                   <button 
+                    onClick={viewSystemStatus}
+                    className="w-full mt-12 py-4 bg-blue-600 text-white rounded-2xl text-xs font-black uppercase tracking-widest shadow-2xl shadow-blue-500/30 hover:bg-blue-700 transition-all origin-bottom group-hover:scale-[1.02]"
+                   >
                       Full System Status
                    </button>
                 </div>

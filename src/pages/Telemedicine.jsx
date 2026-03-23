@@ -18,6 +18,7 @@ import {
 } from 'lucide-react';
 import { clsx } from 'clsx';
 import { motion } from 'framer-motion';
+import useStore from '../store/useStore';
 
 const Telemedicine = () => {
     const [activeCall, setActiveCall] = useState(false);
@@ -25,6 +26,7 @@ const Telemedicine = () => {
     const [isVideoOff, setIsVideoOff] = useState(false);
     const [showChat, setShowChat] = useState(true);
     const [ehrOverlay, setEhrOverlay] = useState(false);
+    const logAction = useStore(state => state.logAction);
 
     if (!activeCall) {
         return (
@@ -92,7 +94,10 @@ const Telemedicine = () => {
                                              <img src="https://upload.wikimedia.org/wikipedia/commons/6/6b/WhatsApp.svg" className="w-5 h-5 opacity-40 group-hover:opacity-100" alt="WA" />
                                         </button>
                                         <button
-                                            onClick={() => setActiveCall(true)}
+                                            onClick={() => {
+                                                logAction('TELEMED_SESSION_STARTED', 'TELEMEDICINE', { patientId: 'PAT-9912' });
+                                                setActiveCall(true);
+                                            }}
                                             className={clsx(
                                                 "px-8 py-4 rounded-2xl text-xs font-black uppercase tracking-widest transition-all flex items-center gap-3 shadow-xl",
                                                 patient.status === 'Ready' ? "bg-blue-600 text-white shadow-blue-500/30 hover:scale-105" : "bg-slate-100 text-slate-400 cursor-not-allowed"
@@ -136,7 +141,12 @@ const Telemedicine = () => {
                                 WhatsApp notifications sent automatically to patients with unique join links. 
                                 No login required for patients.
                             </p>
-                            <button className="w-full py-4 bg-white/10 border border-white/20 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-white/20 transition-all">
+                            <button 
+                                onClick={() => {
+                                    logAction('TELEMED_REMINDER_SENT', 'TELEMEDICINE', { method: 'Manual' });
+                                    alert('Secure patient join link re-sent via SMS/WhatsApp.');
+                                }}
+                                className="w-full py-4 bg-white/10 border border-white/20 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-white/20 transition-all">
                                 Send Manual Reminder
                             </button>
                         </div>
@@ -202,7 +212,10 @@ const Telemedicine = () => {
                         {isVideoOff ? <VideoOff size={24} /> : <Video size={24} />}
                     </button>
                     <button
-                        onClick={() => setActiveCall(false)}
+                        onClick={() => {
+                            logAction('TELEMED_SESSION_ENDED', 'TELEMEDICINE', { duration: '04:23' });
+                            setActiveCall(false);
+                        }}
                         className="p-4 rounded-full bg-red-600 text-white hover:bg-red-700 transition-all shadow-lg shadow-red-600/40 transform hover:scale-105"
                         title="End Call"
                     >

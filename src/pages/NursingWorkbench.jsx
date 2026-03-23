@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import useStore from '../store/useStore';
 import { 
   Clipboard, Activity, Thermometer, Droplets, Pill, 
   Plus, Search, Clock, CheckCircle, AlertTriangle, User,
@@ -16,6 +17,8 @@ const patients = [
 const NursingWorkbench = () => {
   const [activeTab, setActiveTab] = useState('mar');
   const [selectedPatient, setSelectedPatient] = useState(patients[0]);
+  const [privacyMode, setPrivacyMode] = useState(false);
+  const logAction = useStore(state => state.logAction);
 
   const tabs = [
     { id: 'mar', label: 'MAR (Medication Admin)', icon: Pill },
@@ -37,6 +40,17 @@ const NursingWorkbench = () => {
           </h1>
           <p className="text-slate-500 text-sm mt-1">Bedside Charts · MAR · Intake/Output · Nursing Notes</p>
         </div>
+        <div className="flex items-center gap-3">
+           <button 
+             onClick={() => setPrivacyMode(!privacyMode)}
+             className={clsx(
+               "px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest border transition-all",
+               privacyMode ? "bg-slate-900 text-white border-slate-900" : "bg-white text-slate-400 border-slate-200"
+             )}
+           >
+              {privacyMode ? 'DISABLE PRIVACY' : 'ENABLE PRIVACY'}
+           </button>
+        </div>
       </div>
 
       {/* Patient Selection Bar */}
@@ -56,7 +70,7 @@ const NursingWorkbench = () => {
               {p.bed.split('-')[1]}
             </div>
             <div className="text-left">
-              <p className="text-sm font-black">{p.name}</p>
+              <p className="text-sm font-black">{privacyMode ? `BED ${p.bed.split('-')[1]}` : p.name}</p>
               <p className={clsx('text-[10px] font-bold uppercase', selectedPatient.id === p.id ? 'text-blue-100' : 'text-slate-400')}>
                 {p.bed} · {p.status}
               </p>
@@ -136,7 +150,12 @@ const DietComponent = ({ patient }) => {
         </div>
         <div className="p-3 bg-blue-50 border border-blue-100 rounded-2xl flex items-center gap-4">
            <p className="text-[9px] font-black text-blue-400 uppercase leading-none">Status: <br/> <span className="text-xs text-blue-700">{patient.diet}</span></p>
-           <button className="px-4 py-2 bg-blue-600 text-white text-[10px] font-black uppercase rounded-xl">Modify Diet</button>
+           <button 
+              onClick={() => alert(`Modify Diet for ${patient.name}. Options: NBM, Soft, Liquid, Diabetic.`)}
+              className="px-4 py-2 bg-blue-600 text-white text-[10px] font-black uppercase rounded-xl"
+           >
+            Modify Diet
+           </button>
         </div>
       </div>
       
@@ -230,7 +249,20 @@ const HandoverComponent = ({ patient }) => {
              </p>
              <div className="space-y-4">
                 <input type="password" placeholder="ENTER SIGN-OFF PIN" className="w-full bg-white/5 border border-white/10 rounded-2xl px-4 py-3 text-center text-xs font-black text-blue-400 tracking-[0.3em] outline-none" />
-                <button className="w-full py-4 bg-blue-600 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest shadow-lg shadow-blue-500/20 active:scale-95 transition-all">Sign & Handover</button>
+                <button 
+                  onClick={() => {
+                    useStore.getState().logAction('HANDOVER_SIGNED', 'NURSING', { 
+                      patient: patient.name, 
+                      uhid: 'UHID-2024-0012',
+                      from: 'Sr. Anjali',
+                      to: 'Sr. Mary'
+                    });
+                    alert('Handover Successful & Signed.');
+                  }}
+                  className="w-full py-4 bg-blue-600 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest shadow-lg shadow-blue-500/20 active:scale-95 transition-all"
+                >
+                  Sign & Handover
+                </button>
              </div>
           </div>
        </div>
@@ -242,10 +274,21 @@ const HandoverComponent = ({ patient }) => {
 
 const MARComponent = ({ patient }) => {
   const medications = [
-    { id: 1, time: '08:00 AM', name: 'Inj. Ceftriaxone 1gm', route: 'I.V', frequency: 'BD', status: 'Given', nurse: 'Sr. Anjali' },
-    { id: 2, time: '10:00 AM', name: 'Tab. Paracetamol 500mg', route: 'Oral', frequency: 'TDS / SOS', status: 'Due', nurse: '-' },
-    { id: 3, time: '12:00 PM', name: 'Inj. Pantoprazole 40mg', route: 'I.V', frequency: 'OD', status: 'Due', nurse: '-' },
+    { id: 1, time: '08:00 AM', name: 'Inj. Ceftriaxone 1gm', route: 'I.V', frequency: 'BD', status: 'Given', nurse: 'Sr. Anjali', allergyClass: 'Penicillin/Cephalosporin' },
+    { id: 2, time: '10:00 AM', name: 'Tab. Paracetamol 500mg', route: 'Oral', frequency: 'TDS / SOS', status: 'Due', nurse: '-', allergyClass: 'None' },
+    { id: 3, time: '12:00 PM', name: 'Inj. Pantoprazole 40mg', route: 'I.V', frequency: 'OD', status: 'Due', nurse: '-', allergyClass: 'None' },
   ];
+
+  const handleAdminister = (med) => {
+    // CLIN-002: Allergy Check
+    if (patient.allergies !== 'None' && med.allergyClass !== 'None' && med.allergyClass.toLowerCase().includes(patient.allergies.toLowerCase())) {
+        if (!window.confirm(`⚠️ ALLERGY WARNING: Patient is allergic to ${patient.allergies}. This medication belongs to ${med.allergyClass}. DO YOU WANT TO OVERRIDE AND ADMINISTER?`)) {
+            return;
+        }
+    }
+    useStore.getState().logAction('MED_ADMINISTERED', 'MAR', { med: med.name, patient: patient.name });
+    alert(`Medication ${med.name} administered successfully.`);
+  };
 
   return (
     <div className="bg-white rounded-3xl border border-slate-200 overflow-hidden">
@@ -284,7 +327,12 @@ const MARComponent = ({ patient }) => {
               <td className="px-6 py-4 text-xs font-bold text-slate-600">{med.nurse}</td>
               <td className="px-6 py-4 text-right">
                 {med.status === 'Due' && (
-                  <button className="px-3 py-1 bg-green-600 text-white text-[10px] font-black uppercase rounded-lg">Administer</button>
+                  <button 
+                    onClick={() => handleAdminister(med)}
+                    className="px-3 py-1 bg-green-600 text-white text-[10px] font-black uppercase rounded-lg hover:bg-green-700 shadow-md"
+                  >
+                    Administer
+                  </button>
                 )}
               </td>
             </tr>
@@ -296,32 +344,44 @@ const MARComponent = ({ patient }) => {
 };
 
 const BedsideVitals = ({ patient }) => {
-  return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-      {[
-        { label: 'Temp (°F)', val: '98.6', icon: Thermometer, color: 'text-orange-500', bg: 'bg-orange-50' },
-        { label: 'Pulse (bpm)', val: '78', icon: Activity, color: 'text-pink-500', bg: 'bg-pink-50' },
-        { label: 'Resp (pm)', val: '18', icon: Wind, color: 'text-blue-500', bg: 'bg-blue-50' },
-        { label: 'SpO2 (%)', val: '98', icon: Activity, color: 'text-green-500', bg: 'bg-green-50' },
-      ].map(v => (
-        <div key={v.label} className="bg-white p-5 rounded-3xl border border-slate-200 shadow-sm flex items-center justify-between">
-          <div>
-            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{v.label}</p>
-            <p className="text-3xl font-black text-slate-800 mt-1">{v.val}<span className="text-sm font-bold text-slate-400 ml-1">Normal</span></p>
-          </div>
-          <div className={clsx('w-12 h-12 rounded-2xl flex items-center justify-center', v.bg)}>
-            <v.icon size={24} className={v.color} />
-          </div>
+    const vitals = [
+        { label: 'Temp (°F)', val: '98.6', icon: Thermometer, color: 'text-orange-500', bg: 'bg-orange-50', min: 96, max: 100 },
+        { label: 'Pulse (bpm)', val: '78', icon: Activity, color: 'text-pink-500', bg: 'bg-pink-50', min: 60, max: 100 },
+        { label: 'Resp (pm)', val: '18', icon: Wind, color: 'text-blue-500', bg: 'bg-blue-50', min: 12, max: 20 },
+        { label: 'SpO2 (%)', val: '98', icon: Activity, color: 'text-green-500', bg: 'bg-green-50', min: 94, max: 100 },
+    ];
+
+    return (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            {vitals.map(v => {
+                const isAbnormal = parseFloat(v.val) < v.min || parseFloat(v.val) > v.max;
+                return (
+                    <div key={v.label} className={clsx('p-5 rounded-3xl border shadow-sm flex items-center justify-between transition-all', 
+                        isAbnormal ? 'bg-red-50 border-red-200 animate-pulse' : 'bg-white border-slate-200')}>
+                        <div>
+                            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{v.label}</p>
+                            <div className="flex items-center gap-2 mt-1">
+                                <p className={clsx('text-3xl font-black', isAbnormal ? 'text-red-600' : 'text-slate-800')}>{v.val}</p>
+                                <span className={clsx('text-[10px] font-bold px-1.5 py-0.5 rounded uppercase', 
+                                    isAbnormal ? 'bg-red-600 text-white' : 'text-slate-400')}>
+                                    {isAbnormal ? 'ABNORMAL' : 'NORMAL'}
+                                </span>
+                            </div>
+                        </div>
+                        <div className={clsx('w-12 h-12 rounded-2xl flex items-center justify-center', isAbnormal ? 'bg-red-100' : v.bg)}>
+                            <v.icon size={24} className={isAbnormal ? 'text-red-600' : v.color} />
+                        </div>
+                    </div>
+                );
+            })}
+            <div className="md:col-span-2 lg:col-span-4 bg-white p-6 rounded-3xl border border-slate-200 shadow-sm">
+                <h4 className="font-black text-slate-800 text-sm mb-4">6-Hour Vital History</h4>
+                <div className="h-40 bg-slate-50 border-2 border-dashed border-slate-200 rounded-2xl flex items-center justify-center text-slate-400 text-xs font-bold italic">
+                    Vital Trend Chart for {patient.name} (Real-time Streaming)
+                </div>
+            </div>
         </div>
-      ))}
-      <div className="md:col-span-2 lg:col-span-4 bg-white p-6 rounded-3xl border border-slate-200 shadow-sm">
-        <h4 className="font-black text-slate-800 text-sm mb-4">6-Hour Vital History</h4>
-        <div className="h-40 bg-slate-50 border-2 border-dashed border-slate-200 rounded-2xl flex items-center justify-center text-slate-400 text-xs font-bold italic">
-          Vital Trend Chart for {patient.name} (Real-time Streaming)
-        </div>
-      </div>
-    </div>
-  );
+    );
 };
 
 const IntakeOutputComponent = ({ patient }) => {

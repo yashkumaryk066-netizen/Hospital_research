@@ -125,10 +125,11 @@ const Sidebar = ({ isOpen, onClose }) => {
         if (!user || user.role === 'Super Admin') return true;
         
         const rolePermissions = {
-            'Doctor': ['/opd', '/triage', '/mlc', '/ipd', '/diagnosis', '/nursing', '/ot', '/neonatal', '/mortuary', '/organ-donation', '/laboratory', '/radiology', '/blood-bank', '/doctors', '/patients/profile'],
-            'Nurse': ['/ipd/dashboard', '/ipd/beds', '/nursing', '/triage', '/neonatal', '/mortuary', '/patients/profile'],
-            'Pharmacy': ['/pharmacy', '/stores', '/blood-bank'],
-            'Patient': ['/dashboard', '/patients/profile', '/opd/list', '/laboratory']
+            'Doctor': ['/dashboard/opd', '/dashboard/triage', '/dashboard/mlc', '/dashboard/ipd', '/dashboard/diagnosis', '/dashboard/nursing', '/dashboard/discharge', '/dashboard/ot', '/dashboard/neonatal', '/dashboard/mortuary', '/dashboard/organ-donation', '/dashboard/laboratory', '/dashboard/radiology', '/dashboard/blood-bank', '/dashboard/doctors', '/dashboard/patients/profile'],
+            'Nurse': ['/dashboard/ipd/dashboard', '/dashboard/ipd/beds', '/dashboard/nursing', '/dashboard/triage', '/dashboard/discharge', '/dashboard/neonatal', '/dashboard/mortuary', '/dashboard/patients/profile'],
+            'Lab': ['/dashboard/laboratory', '/dashboard/radiology', '/dashboard/patients/profile'], // BUG-009 fix
+            'Pharmacy': ['/dashboard/pharmacy', '/dashboard/stores', '/dashboard/blood-bank'],
+            'Patient': ['/dashboard/patients/profile', '/dashboard/laboratory']  // BUG-009 fix: removed /opd/list
         };
 
         const allowedPaths = rolePermissions[user.role] || [];
@@ -137,7 +138,7 @@ const Sidebar = ({ isOpen, onClose }) => {
             return item.subItems.some(sub => allowedPaths.some(path => sub.to.startsWith(path)));
         }
         
-        return allowedPaths.some(path => item.to.startsWith(path));
+        return allowedPaths.some(path => item.to?.startsWith(path));
     };
 
     const menuStructure = [
@@ -171,7 +172,7 @@ const Sidebar = ({ isOpen, onClose }) => {
                         { label: "OT & ICU Management", to: "/dashboard/ot-icu" },
                         { label: "OT Booking", to: "/dashboard/ot" },
                         { label: "Patient Transfer", to: "/dashboard/ipd/transfer" },
-                        { label: "Discharge", to: "/dashboard/ipd/discharge" }
+                        { label: "Discharge", to: "/dashboard/discharge" }  // BUG-007 fix: was /ipd/discharge
                     ]
                 },
                 {
@@ -415,8 +416,8 @@ const Sidebar = ({ isOpen, onClose }) => {
                     </button>
                 </div>
 
-                {/* Pro Tier Card */}
-                <div className="mx-3 mb-4">
+                {/* BUG-028 fix: Only show upgrade card to Super Admin */}
+                {user?.role === 'Super Admin' && <div className="mx-3 mb-4">
                     <div className="relative bg-gradient-to-br from-blue-600/20 to-indigo-800/30 rounded-[1.5rem] p-5 border border-blue-500/20 overflow-hidden group">
                         <div className="absolute -top-6 -right-6 w-32 h-32 bg-blue-500/10 rounded-full blur-2xl group-hover:bg-blue-500/20 transition-all duration-700" />
                         <div className="absolute -bottom-6 -left-6 w-24 h-24 bg-indigo-500/10 rounded-full blur-2xl" />
@@ -438,7 +439,7 @@ const Sidebar = ({ isOpen, onClose }) => {
                             </button>
                         </div>
                     </div>
-                </div>
+                </div>}
 
                 {/* Footer */}
                 <div className="px-6 pb-6">

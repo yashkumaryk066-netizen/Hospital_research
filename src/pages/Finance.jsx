@@ -31,10 +31,13 @@ import {
     Area
 } from 'recharts';
 import { clsx } from 'clsx';
+import { motion, AnimatePresence } from 'framer-motion'; // BUG-003 fix
+import useStore from '../store/useStore';
 
 const Finance = () => {
     const [dateRange, setDateRange] = useState('monthly'); // weekly, monthly, yearly
     const [isPrivacyMode, setIsPrivacyMode] = useState(true); // HIPAA Blind Mode
+    const logAction = useStore(state => state.logAction);
 
     // Mock Data - World Class Financials
     const revenueData = [
@@ -76,6 +79,9 @@ const Finance = () => {
         return `$${val}M`;
     };
 
+    // HIPAA-006 fix: Also mask patient names in blind mode
+    const formatName = (name) => isPrivacyMode ? '*** ***' : name;
+
     const [settlementModal, setSettlementModal] = useState(false);
 
     return (
@@ -106,8 +112,18 @@ const Finance = () => {
                                     </div>
                                 </div>
                                 <div className="space-y-4 flex flex-col justify-end">
-                                    <button className="w-full py-4 bg-slate-900 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest shadow-xl">Process Credit Card</button>
-                                    <button className="w-full py-4 bg-white border border-slate-200 text-slate-600 rounded-2xl text-[10px] font-black uppercase tracking-widest">Generate Final Invoice (PDF)</button>
+                                    <button 
+                                        onClick={() => {
+                                            logAction('FINANCIAL_PAYMENT_PROCESSED', 'FINANCE', { method: 'Credit Card', amount: 6450 });
+                                            alert('Payment processed successfully.');
+                                        }}
+                                        className="w-full py-4 bg-slate-900 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest shadow-xl">Process Credit Card</button>
+                                    <button 
+                                        onClick={() => {
+                                            logAction('FINANCIAL_INVOICE_GENERATED', 'FINANCE', { patientId: 'IPD-2024-04' });
+                                            alert('Final invoice generated and sent to EMR.');
+                                        }}
+                                        className="w-full py-4 bg-white border border-slate-200 text-slate-600 rounded-2xl text-[10px] font-black uppercase tracking-widest">Generate Final Invoice (PDF)</button>
                                 </div>
                              </div>
 
@@ -137,7 +153,13 @@ const Finance = () => {
                 </div>
                 <div className="flex items-center gap-3">
                     <button
-                        onClick={() => setIsPrivacyMode(!isPrivacyMode)}
+                        onClick={() => {
+                            const newMode = !isPrivacyMode;
+                            if (newMode === false) {
+                                logAction('PII_REVEAL_FINANCE', 'SECURITY', { zone: 'CFO_COMMAND' });
+                            }
+                            setIsPrivacyMode(newMode);
+                        }}
                         className={clsx(
                             "flex items-center gap-2 px-6 py-3 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all border shadow-sm",
                             isPrivacyMode ? "bg-slate-900 text-white border-slate-900" : "bg-white text-slate-600 border-slate-200 hover:bg-slate-50"
@@ -207,7 +229,7 @@ const Finance = () => {
                     </div>
                     <div className="h-80 w-full">
                         <ResponsiveContainer width="100%" height="100%">
-                            <AreaChart data={revenueData}>
+                            <AreaChart data={dateRange === 'weekly' ? revenueData.slice(-4) : revenueData}>
                                 <defs>
                                     <linearGradient id="colorRevenue" x1="0" y1="0" x2="0" y2="1">
                                         <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.1} />
@@ -329,7 +351,7 @@ const Finance = () => {
                             </thead>
                             <tbody className="divide-y divide-slate-100">
                                 {[
-                                    { id: '#CLM-9021', amt: '$4,200', reason: 'Missing Auth', status: 'Pealing' },
+                                    { id: '#CLM-9021', amt: '$4,200', reason: 'Missing Auth', status: 'Appealing' },
                                     { id: '#CLM-9034', amt: '$1,850', reason: 'Coding Err', status: 'Review' },
                                     { id: '#CLM-9088', amt: '$12,500', reason: 'Not Covered', status: 'Final' },
                                 ].map(row => (
@@ -397,7 +419,12 @@ const Finance = () => {
                     <div className="space-y-3">
                         <button className="w-full py-4 bg-slate-50 text-slate-600 rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-slate-100 transition-all border border-slate-100">Prepare Tax (GST) Filing</button>
                         <button className="w-full py-4 bg-slate-50 text-slate-600 rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-slate-100 transition-all border border-slate-100">Vendor Payment Audit</button>
-                        <button className="w-full py-4 bg-blue-600 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-blue-700 transition-all shadow-lg shadow-blue-500/20">Trigger Global Reconciliation</button>
+                        <button 
+                            onClick={() => {
+                                logAction('FINANCIAL_ERP_SYNC_TRIGGERED', 'FINANCE', { system: 'SAP/Tally' });
+                                alert('Global ERP Reconciliation sequence initiated.');
+                            }}
+                            className="w-full py-4 bg-blue-600 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-blue-700 transition-all shadow-lg shadow-blue-500/20">Trigger Global Reconciliation</button>
                     </div>
                 </div>
             </div>

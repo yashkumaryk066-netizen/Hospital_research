@@ -19,10 +19,12 @@ import {
 import StatCard from '../components/dashboard/StatCard';
 import { clsx } from 'clsx';
 import { AnimatePresence, motion } from 'framer-motion';
+import useStore from '../store/useStore';
 
 const Appointments = () => {
     const [view, setView] = useState('week'); // day, week, month
     const [selectedDate, setSelectedDate] = useState(new Date());
+    const logAction = useStore(state => state.logAction);
 
     // Mock Data
     const stats = [
@@ -33,10 +35,10 @@ const Appointments = () => {
     ];
 
     const appointments = [
-        { id: 1, patient: "Sarah Connor", doctor: "Dr. Silberman", type: "In-Person", time: "09:00 AM", status: "Confirmed", department: "Psychiatry" },
-        { id: 2, patient: "Kyle Reese", doctor: "Dr. Venture", type: "Video", time: "10:30 AM", status: "Pending", department: "Orthopedics" },
-        { id: 3, patient: "Ellen Ripley", doctor: "Dr. Ash", type: "In-Person", time: "11:45 AM", status: "Confirmed", department: "Cardiology" },
-        { id: 4, patient: "Rick Deckard", doctor: "Dr. Tyrell", type: "Emergency", time: "02:15 PM", status: "Cancelled", department: "Ophthalmology" },
+        { id: 1, patient: "S**** C****", doctor: "Dr. Silberman", type: "In-Person", time: "09:00 AM", status: "Confirmed", department: "Psychiatry" },
+        { id: 2, patient: "K**** R****", doctor: "Dr. Venture", type: "Video", time: "10:30 AM", status: "Pending", department: "Orthopedics" },
+        { id: 3, patient: "E**** R****", doctor: "Dr. Ash", type: "In-Person", time: "11:45 AM", status: "Confirmed", department: "Cardiology" },
+        { id: 4, patient: "R**** D****", doctor: "Dr. Tyrell", type: "Emergency", time: "02:15 PM", status: "Cancelled", department: "Ophthalmology" },
     ];
 
     const weekDays = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
@@ -65,7 +67,12 @@ const Appointments = () => {
                             </button>
                         ))}
                     </div>
-                    <button className="px-5 py-2 bg-primary text-white rounded-xl text-sm font-bold hover:bg-blue-600 shadow-lg shadow-primary/30 transition-all hover:scale-[1.02] flex items-center gap-2">
+                    <button 
+                        onClick={() => {
+                            logAction('APPOINTMENT_BOOKING_STARTED', 'APPOINTMENTS', { zone: 'Front_Desk' });
+                            alert('Appointment scheduling wizard initialized.');
+                        }}
+                        className="px-5 py-2 bg-primary text-white rounded-xl text-sm font-bold hover:bg-blue-600 shadow-lg shadow-primary/30 transition-all hover:scale-[1.02] flex items-center gap-2">
                         <Plus size={18} />
                         Book Appointment
                     </button>
@@ -131,7 +138,7 @@ const Appointments = () => {
                             {/* Events Overlay (Mock) */}
                             <div className="absolute top-[10px] left-[12.5%] w-[12.5%] h-20 p-1 z-10">
                                 <div className="w-full h-full bg-blue-50 border-l-4 border-blue-500 rounded p-2 text-xs hover:scale-105 transition-transform cursor-pointer shadow-sm">
-                                    <div className="font-bold text-blue-900 truncate">Sarah Connor</div>
+                                    <div className="font-bold text-blue-900 truncate">S**** C****</div>
                                     <div className="text-blue-700 truncate">Dr. Silberman</div>
                                 </div>
                             </div>

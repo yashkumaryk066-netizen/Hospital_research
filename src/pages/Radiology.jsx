@@ -33,6 +33,7 @@ import {
 import StatCard from '../components/dashboard/StatCard';
 import { clsx } from 'clsx';
 import { motion, AnimatePresence } from 'framer-motion';
+import useStore from '../store/useStore';
 
 // --- Sub-Components ---
 
@@ -146,7 +147,7 @@ const PACSViewer = ({ study, onClose }) => {
 
                     {/* Corner Metadata Overlay */}
                     <div className="absolute top-8 left-8 text-blue-400 font-mono text-[10px] space-y-1 drop-shadow-lg opacity-80">
-                        <p className="font-black text-white">{study.patient}</p>
+                        <p className="font-black text-white">PROTECTED PHI - {study.id}</p>
                         <p>ID: {study.id}</p>
                         <p>ACC: 899122310</p>
                         <p>KV: 120 | mAs: 15.2</p>
@@ -190,7 +191,10 @@ const PACSViewer = ({ study, onClose }) => {
 
                     <div className="mt-auto space-y-4">
                         <button 
-                            onClick={() => setNotified(true)}
+                            onClick={() => {
+                                logAction('CRITICAL_RADIOLOGY_FINDING_FLAGGED', 'RADIOLOGY', { studyId: study.id });
+                                setNotified(true);
+                            }}
                             className={clsx(
                                 "w-full py-4 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all flex items-center justify-center gap-2 shadow-2xl transform active:scale-95",
                                 notified ? "bg-emerald-600 text-white" : "bg-rose-600 text-white shadow-rose-500/20"
@@ -199,7 +203,12 @@ const PACSViewer = ({ study, onClose }) => {
                             {notified ? <CheckCircle2 size={16} /> : <AlertCircle size={16} />}
                             {notified ? 'Physician Notified' : 'Flag Critical Finding'}
                         </button>
-                        <button className="w-full py-4 bg-blue-600 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest shadow-2xl shadow-blue-500/30 hover:bg-blue-700 transition-all">
+                        <button 
+                            onClick={() => {
+                                logAction('RADIOLOGY_REPORT_FINALIZED', 'RADIOLOGY', { studyId: study.id });
+                                onClose();
+                            }}
+                            className="w-full py-4 bg-blue-600 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest shadow-2xl shadow-blue-500/30 hover:bg-blue-700 transition-all">
                              Finalize & Sign Report
                         </button>
                     </div>
@@ -282,6 +291,7 @@ const SchedulingView = () => {
 const Radiology = () => {
     const [activeTab, setActiveTab] = useState('worklist'); // worklist, scheduling
     const [selectedStudy, setSelectedStudy] = useState(null);
+    const logAction = useStore(state => state.logAction);
 
     const worklist = [
         { id: 'RAD-001', patient: 'Michael Scott', age: 45, exam: 'CT Brain Plain', status: 'Ready to Report', urgency: 'Stat' },

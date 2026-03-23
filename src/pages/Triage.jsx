@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { AlertTriangle, Activity, HeartPulse, Thermometer, Droplets, Brain, Clock, Plus, Search, UserPlus, Zap, ShieldAlert, Ambulance } from 'lucide-react';
 import { clsx } from 'clsx';
 import { motion, AnimatePresence } from 'framer-motion';
+import useStore from '../store/useStore';
 
 const ESI_LEVELS = [
   { level: 1, label: 'Resuscitation', color: 'bg-red-600', text: 'text-white', border: 'border-red-700', desc: 'Immediate life threat' },
@@ -11,7 +12,7 @@ const ESI_LEVELS = [
   { level: 5, label: 'Non-Urgent', color: 'bg-blue-500', text: 'text-white', border: 'border-blue-600', desc: 'Chronic, no resources needed' },
 ];
 
-const triageQueue = [
+const INITIAL_TRIAGE = [
   { id: 'TRG-001', name: 'Ramesh Kumar', age: 58, arrivalMode: 'Ambulance', esi: 1, vitals: { bp: '80/50', hr: 120, spo2: 88, temp: 101.2, rr: 28 }, mlc: true, gcs: 9, time: '14:32', physician: 'Dr. Sharma' },
   { id: 'TRG-002', name: 'Priya Singh', age: 34, arrivalMode: 'Walk-in', esi: 3, vitals: { bp: '130/85', hr: 96, spo2: 97, temp: 99.8, rr: 18 }, mlc: false, gcs: 15, time: '14:40', physician: 'Dr. Mehta' },
   { id: 'TRG-003', name: 'Arun Patel', age: 72, arrivalMode: 'Private Vehicle', esi: 2, vitals: { bp: '180/110', hr: 102, spo2: 94, temp: 100.1, rr: 22 }, mlc: false, gcs: 13, time: '14:45', physician: 'Unassigned' },
@@ -27,14 +28,72 @@ const EsiBadge = ({ level }) => {
 };
 
 const Triage = () => {
+  const [triageQueue, setTriageQueue] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [selectedEsi, setSelectedEsi] = useState(null);
   const [isNewModalOpen, setIsNewModalOpen] = useState(false);
   const [formVitals, setFormVitals] = useState({ bp: '', hr: '', spo2: '', temp: '', rr: '', gcs: 15 });
   const [mlcFlag, setMlcFlag] = useState(false);
   const [chosenEsi, setChosenEsi] = useState(null);
   const [arrivalMode, setArrivalMode] = useState('Walk-in');
+  const [patientName, setPatientName] = useState('');
+  const [patientAge, setPatientAge] = useState('');
+  const logAction = useStore(state => state.logAction);
+
+  const fetchTriage = async () => {
+    try {
+      const { default: client } = await import('../api/client');
+      const res = await client.get('patients/');
+      // Map backend Patient to Triage format
+      const triageList = res.data.map(p => ({
+        id: p.uhid,
+        name: p.full_name,
+        age: 30, // Default for now
+        arrivalMode: 'Walk-in',
+        esi: 3, // Mock ESI for existing patients
+        vitals: { bp: '120/80', hr: 80, spo2: 98, temp: 98.6, rr: 16 },
+        mlc: false,
+        gcs: 15,
+        time: new Date(p.created_at).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' }),
+        physician: 'Unassigned'
+      }));
+      setTriageQueue(triageList);
+      setIsLoading(false);
+    } catch (err) {
+       console.error("Triage fetch error", err);
+       setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchTriage();
+  }, []);
 
   const filtered = selectedEsi ? triageQueue.filter(t => t.esi === selectedEsi) : triageQueue;
+
+  const handleRegisterPatient = async () => {
+    if (!patientName || !chosenEsi) return;
+    try {
+      const { default: client } = await import('../api/client');
+      const patientData = {
+        full_name: patientName,
+        dob: '1990-01-01', // Mock DOB
+        gender: 'M',
+        mobile_number: '0000000000',
+        visit_type: 'EMER',
+        chief_complaint: 'Emergency Admission'
+      };
+      const res = await client.post('patients/', patientData);
+      
+      logAction('EMERGENCY_PATIENT_REGISTERED', 'TRIAGE', { patientId: res.uhid, esi: chosenEsi });
+      setIsNewModalOpen(false);
+      fetchTriage(); // Refresh
+      setPatientName(''); setPatientAge(''); setChosenEsi(null); setMlcFlag(false);
+      setFormVitals({ bp: '', hr: '', spo2: '', temp: '', rr: '', gcs: 15 });
+    } catch (err) {
+      alert("Error registering patient on backend");
+    }
+  };
 
   return (
     <div className="space-y-6 pb-10">
@@ -212,11 +271,23 @@ const Triage = () => {
                   </div>
                   <div>
                     <label className="text-xs font-black text-slate-600 uppercase tracking-wider">Full Name / Unknown</label>
-                    <input type="text" placeholder="Patient name or 'Unknown Male'" className="mt-1.5 w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-red-500/20 outline-none" />
+                    <input 
+                      type="text" 
+                      placeholder="Patient name or 'Unknown Male'" 
+                      value={patientName}
+                      onChange={e => setPatientName(e.target.value)}
+                      className="mt-1.5 w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-red-500/20 outline-none" 
+                    />
                   </div>
                   <div>
                     <label className="text-xs font-black text-slate-600 uppercase tracking-wider">Approx. Age</label>
-                    <input type="number" placeholder="Age in years" className="mt-1.5 w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-red-500/20 outline-none" />
+                    <input 
+                      type="number" 
+                      placeholder="Age in years" 
+                      value={patientAge}
+                      onChange={e => setPatientAge(e.target.value)}
+                      className="mt-1.5 w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-red-500/20 outline-none" 
+                    />
                   </div>
                 </div>
 
@@ -268,7 +339,7 @@ const Triage = () => {
 
                 <div className="flex justify-end gap-3 pt-2">
                   <button onClick={() => setIsNewModalOpen(false)} className="px-5 py-2.5 bg-slate-100 text-slate-600 font-bold rounded-xl text-sm hover:bg-slate-200">Cancel</button>
-                  <button className="px-6 py-2.5 bg-red-600 text-white rounded-xl font-black text-sm shadow-lg shadow-red-500/30 hover:bg-red-700">
+                  <button onClick={handleRegisterPatient} disabled={!patientName || !chosenEsi} className="px-6 py-2.5 bg-red-600 disabled:opacity-50 text-white rounded-xl font-black text-sm shadow-lg shadow-red-500/30 hover:bg-red-700">
                     Register &amp; Assign Bed
                   </button>
                 </div>

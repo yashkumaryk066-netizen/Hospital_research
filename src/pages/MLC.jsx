@@ -4,7 +4,9 @@ import {
   MapPin, Clock, User, CreditCard, Plus, CheckCircle
 } from 'lucide-react';
 import { clsx } from 'clsx';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
+import useStore from '../store/useStore';
+import { useEffect } from 'react';
 
 const mlcCases = [
   { id: 'MLC-2026-001', name: 'Ramesh Kumar', esi: 1, incident: 'Road Traffic Accident', policeStation: 'Sector 17 PS', caseFiled: true, fir: 'FIR#1892/2026', doctor: 'Dr. Sharma', status: 'Police Notified', admittedOn: '20 Mar 2026 14:32', evidenceCount: 3 },
@@ -16,6 +18,8 @@ const MLC = () => {
   const [isNewModal, setIsNewModal] = useState(false);
   const [evidenceVault, setEvidenceVault] = useState(false);
   const [incidentType, setIncidentType] = useState('');
+  const auditLog = useStore(state => state.auditLog);
+  const logAction = useStore(state => state.logAction);
 
   const stats = [
     { title: 'MTD Cases', value: '42', icon: FileText, color: 'bg-purple-600' },
@@ -97,43 +101,55 @@ const MLC = () => {
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-50 font-medium">
-              {mlcCases.map((mlc) => (
-                <tr key={mlc.id} className="hover:bg-purple-50/30 transition-colors group">
-                  <td className="px-10 py-6 font-mono text-xs font-black text-purple-600">{mlc.id}</td>
-                  <td className="px-6 py-6">
-                    <div className="font-black text-slate-800">{mlc.name}</div>
-                    <div className="text-[10px] text-slate-400 uppercase font-bold">{mlc.admittedOn}</div>
-                  </td>
-                  <td className="px-6 py-6 font-bold text-slate-600">{mlc.incident}</td>
-                  <td className="px-6 py-6">
-                     <span className="text-[10px] bg-slate-100 px-2 py-0.5 rounded font-black text-slate-500">{mlc.policeStation}</span>
-                  </td>
-                  <td className="px-6 py-6">
-                    <span className={clsx('text-xs font-black', mlc.fir === 'Pending' ? 'text-orange-500' : 'text-slate-900')}>
-                      {mlc.fir}
-                    </span>
-                  </td>
-                  <td className="px-6 py-6 text-center">
-                     <div className="flex flex-col items-center">
-                        <span className="text-sm font-black text-slate-800">{mlc.evidenceCount}</span>
-                        <span className="text-[8px] font-black text-emerald-600 uppercase">Sealed</span>
-                     </div>
-                  </td>
-                  <td className="px-6 py-6">
-                    <span className={clsx('px-3 py-1 text-[9px] font-black uppercase rounded-full border',
-                      mlc.status === 'Police Notified' ? 'bg-green-50 text-green-700 border-green-100' :
-                      mlc.status === 'Report Submitted' ? 'bg-blue-50 text-blue-700 border-blue-100' :
-                      'bg-orange-50 text-orange-700 border-orange-100'
-                    )}>{mlc.status}</span>
-                  </td>
-                  <td className="px-6 py-6 text-right">
-                    <div className="flex justify-end gap-2 opacity-0 group-hover:opacity-100 transition-all">
-                        <button className="p-2 bg-white border border-slate-200 rounded-lg text-slate-400 hover:text-purple-600 shadow-sm"><FileText size={14} /></button>
-                        <button className="p-2 bg-white border border-slate-200 rounded-lg text-slate-400 hover:text-emerald-600 shadow-sm"><Shield size={14} /></button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
+              {mlcCases.map((mlc) => {
+                const timeDiff = Math.floor((Date.now() - new Date(mlc.admittedOn).getTime()) / 60000);
+                const isOverdue = timeDiff > 60 && !mlc.caseFiled;
+                
+                return (
+                  <tr key={mlc.id} className={clsx('hover:bg-purple-50/30 transition-colors group', isOverdue && 'bg-rose-50/50')}>
+                    <td className="px-10 py-6 font-mono text-xs font-black text-purple-600">{mlc.id}</td>
+                    <td className="px-6 py-6">
+                      <div className="font-black text-slate-800">{mlc.name}</div>
+                      <div className="text-[10px] text-slate-400 uppercase font-bold">{mlc.admittedOn}</div>
+                    </td>
+                    <td className="px-6 py-6 font-bold text-slate-600">
+                      {mlc.incident}
+                      {isOverdue && (
+                        <div className="text-[8px] text-rose-600 font-black uppercase tracking-widest flex items-center gap-1 mt-1">
+                          <Clock size={10} className="animate-spin-slow" /> Notification Overdue ({timeDiff}m)
+                        </div>
+                      )}
+                    </td>
+                    <td className="px-6 py-6">
+                       <span className="text-[10px] bg-slate-100 px-2 py-0.5 rounded font-black text-slate-500">{mlc.policeStation}</span>
+                    </td>
+                    <td className="px-6 py-6">
+                      <span className={clsx('text-xs font-black', mlc.fir === 'Pending' ? 'text-orange-500' : 'text-slate-900')}>
+                        {mlc.fir}
+                      </span>
+                    </td>
+                    <td className="px-6 py-6 text-center">
+                       <div className="flex flex-col items-center">
+                          <span className="text-sm font-black text-slate-800">{mlc.evidenceCount}</span>
+                          <span className="text-[8px] font-black text-emerald-600 uppercase">Sealed</span>
+                       </div>
+                    </td>
+                    <td className="px-6 py-6">
+                      <span className={clsx('px-3 py-1 text-[9px] font-black uppercase rounded-full border',
+                        mlc.status === 'Police Notified' ? 'bg-green-50 text-green-700 border-green-100' :
+                        mlc.status === 'Report Submitted' ? 'bg-blue-50 text-blue-700 border-blue-100' :
+                        'bg-orange-50 text-orange-700 border-orange-100'
+                      )}>{mlc.status}</span>
+                    </td>
+                    <td className="px-6 py-6 text-right">
+                      <div className="flex justify-end gap-2 opacity-0 group-hover:opacity-100 transition-all">
+                          <button className="p-2 bg-white border border-slate-200 rounded-lg text-slate-400 hover:text-purple-600 shadow-sm"><FileText size={14} /></button>
+                          <button className="p-2 bg-white border border-slate-200 rounded-lg text-slate-400 hover:text-emerald-600 shadow-sm"><Shield size={14} /></button>
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>
@@ -171,17 +187,26 @@ const MLC = () => {
                         </div>
                         <div className="bg-slate-900 rounded-[2.5rem] p-8 text-white space-y-8 h-full">
                            <h4 className="text-[10px] font-black text-emerald-400 uppercase tracking-widest">Vault Audit Log</h4>
-                           <div className="space-y-4">
-                               <div className="flex gap-3">
-                                  <div className="w-1.5 h-1.5 bg-emerald-500 rounded-full mt-1 shrink-0" />
-                                  <p className="text-[10px] font-medium opacity-60">Officer R. Singh verified items at 14:00 PM</p>
-                               </div>
-                               <div className="flex gap-3">
-                                  <div className="w-1.5 h-1.5 bg-blue-500 rounded-full mt-1 shrink-0" />
-                                  <p className="text-[10px] font-medium opacity-60">Dr. Sharma locked the vault at 10:15 AM</p>
-                               </div>
+                           <div className="space-y-4 max-h-[150px] overflow-y-auto pr-2 custom-scrollbar">
+                               {auditLog.filter(l => l.module === 'MLC' || l.module === 'VAULT').slice(0, 5).map(l => (
+                                   <div key={l.id} className="flex gap-3">
+                                      <div className="w-1.5 h-1.5 bg-emerald-500 rounded-full mt-1 shrink-0" />
+                                      <p className="text-[10px] font-medium opacity-60">{l.user} {l.action.toLowerCase()} at {new Date(l.timestamp).toLocaleTimeString()}</p>
+                                   </div>
+                               ))}
+                               {auditLog.filter(l => l.module === 'MLC' || l.module === 'VAULT').length === 0 && (
+                                   <p className="text-[10px] font-medium opacity-30 italic">No access records found.</p>
+                               )}
                            </div>
-                           <button className="w-full py-4 bg-emerald-600 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest shadow-xl shadow-emerald-500/20">Handover To Police</button>
+                           <button 
+                             onClick={() => {
+                               logAction('HANDOVER_TO_POLICE', 'VAULT', { items: '4 Evidence Bags' });
+                               alert('Chain of Custody Handover Logged.');
+                             }}
+                             className="w-full py-4 bg-emerald-600 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest shadow-xl shadow-emerald-500/20"
+                           >
+                             Handover To Police
+                           </button>
                         </div>
                     </div>
                 </div>
@@ -226,7 +251,16 @@ const MLC = () => {
               </div>
               <div className="flex justify-end gap-3">
                 <button onClick={() => setIsNewModal(false)} className="px-5 py-2.5 bg-slate-100 text-slate-600 font-bold rounded-xl text-sm">Cancel</button>
-                <button className="px-6 py-2.5 bg-purple-700 text-white rounded-xl font-black text-sm hover:bg-purple-800">Register &amp; Notify Police</button>
+                <button 
+                  onClick={() => {
+                    logAction('MLC_REGISTERED', 'MLC', { type: incidentType });
+                    alert('Case Registered and Police Station Notified via Integrated Portal.');
+                    setIsNewModal(false);
+                  }}
+                  className="px-6 py-2.5 bg-purple-700 text-white rounded-xl font-black text-sm hover:bg-purple-800"
+                >
+                  Register &amp; Notify Police
+                </button>
               </div>
             </div>
           </motion.div>

@@ -13,10 +13,14 @@ import {
 } from 'lucide-react';
 import StatCard from '../components/dashboard/StatCard';
 import { clsx } from 'clsx';
+import { motion, AnimatePresence } from 'framer-motion';
+import useStore from '../store/useStore';
 
 const Ambulance = () => {
     const [view, setView] = useState('list'); // list, tracker, epcr
     const [mciMode, setMciMode] = useState(false);
+    const [controlledMedDetails, setControlledMedDetails] = useState({ med: 'None', witness: '', waste: '' });
+    const logAction = useStore(state => state.logAction);
 
     const ambulances = [
         { id: 'AMB-101', number: 'MH-12-AS-1221', driver: 'Rahul Deshmukh', status: 'Available', contact: '+91 98221 22110', type: 'ALS' },
@@ -67,7 +71,11 @@ const Ambulance = () => {
                 </div>
                 <div className="flex items-center gap-3">
                     <button 
-                       onClick={() => setMciMode(!mciMode)}
+                       onClick={() => {
+                           const newMode = !mciMode;
+                           setMciMode(newMode);
+                           logAction(newMode ? 'MCI_PROTOCOL_ACTIVATED' : 'MCI_PROTOCOL_DEACTIVATED', 'AMBULANCE');
+                       }}
                        className={clsx(
                            "px-6 py-3 rounded-2xl text-xs font-black uppercase tracking-widest transition-all shadow-sm flex items-center gap-2",
                            mciMode ? "bg-rose-100 text-rose-600 border border-rose-200" : "bg-white border border-slate-200 text-slate-400"
@@ -124,12 +132,37 @@ const Ambulance = () => {
                                      </div>
                                      <div>
                                          <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest block mb-2">Controlled Meds Used</label>
-                                         <select className="w-full bg-white border border-slate-200 rounded-xl p-3 text-xs font-bold outline-none">
-                                             <option>Morphine 5mg (IV)</option>
-                                             <option>Fentanyl 50mcg (IV)</option>
-                                             <option>None</option>
+                                         <select 
+                                            onChange={(e) => setControlledMedDetails({...controlledMedDetails, med: e.target.value})}
+                                            className="w-full bg-white border border-slate-200 rounded-xl p-3 text-xs font-bold outline-none"
+                                         >
+                                             <option value="None">None</option>
+                                             <option value="Morphine 5mg (IV)">Morphine 5mg (IV)</option>
+                                             <option value="Fentanyl 50mcg (IV)">Fentanyl 50mcg (IV)</option>
                                          </select>
                                      </div>
+                                     {controlledMedDetails.med !== 'None' && (
+                                         <div className="col-span-2 grid grid-cols-2 gap-4 animate-in fade-in slide-in-from-top-2">
+                                             <div className="space-y-2">
+                                                 <label className="text-[9px] font-black text-rose-600 uppercase tracking-widest">Witness Nurse/MD Name</label>
+                                                 <input 
+                                                    type="text" 
+                                                    placeholder="Required for Narcotics"
+                                                    onChange={(e) => setControlledMedDetails({...controlledMedDetails, witness: e.target.value})}
+                                                    className="w-full px-4 py-2 bg-rose-50 border border-rose-200 rounded-xl text-xs font-bold focus:ring-2 focus:ring-rose-200 outline-none" 
+                                                 />
+                                             </div>
+                                             <div className="space-y-2">
+                                                 <label className="text-[9px] font-black text-rose-600 uppercase tracking-widest">Waste Amount (cc/mg)</label>
+                                                 <input 
+                                                    type="text" 
+                                                    placeholder="e.g. 5mg Wasted"
+                                                    onChange={(e) => setControlledMedDetails({...controlledMedDetails, waste: e.target.value})}
+                                                    className="w-full px-4 py-2 bg-rose-50 border border-rose-200 rounded-xl text-xs font-bold focus:ring-2 focus:ring-rose-200 outline-none"
+                                                 />
+                                             </div>
+                                         </div>
+                                     )}
                                  </div>
                              </div>
 
@@ -183,9 +216,23 @@ const Ambulance = () => {
                                          <div className="h-full bg-indigo-400 w-3/4 animate-shimmer" />
                                      </div>
                                 </div>
-                                <button className="w-full py-4 bg-white text-indigo-900 rounded-2xl text-xs font-black uppercase tracking-widest shadow-2xl hover:bg-slate-50 transition-all transform active:scale-95">
-                                   Authorize EMR Upload
-                                </button>
+                                <div className="space-y-3 mb-6">
+                                    <input type="password" placeholder="ENTER CLINICAL PIN" className="w-full bg-white/5 border border-white/10 rounded-2xl px-4 py-3 text-center text-xs font-black text-indigo-300 tracking-[0.3em] outline-none" />
+                                    <button 
+                                        onClick={() => {
+                                            if (controlledMedDetails.med !== 'None' && !controlledMedDetails.witness) {
+                                                alert('ERROR: Witness Name mandatory for Controlled Medication administration.');
+                                                return;
+                                            }
+                                            logAction('EPCR_FINALIZED', 'AMBULANCE', { patient: 'Mrs. Kulkarni', vehicle: 'AMB-102', controlledMed: controlledMedDetails });
+                                            alert('ePCR Authorize & Uploaded to Hospital EMR.');
+                                            setView('list');
+                                        }}
+                                        className="w-full py-4 bg-white text-indigo-900 rounded-2xl text-xs font-black uppercase tracking-widest shadow-2xl hover:bg-slate-50 transition-all transform active:scale-95"
+                                    >
+                                        Authorize EMR Upload
+                                    </button>
+                                </div>
                                 <p className="text-[8px] font-bold text-indigo-400 uppercase tracking-widest text-center mt-4">HIPAA Sealed • Immutable Timestamp</p>
                             </div>
 

@@ -8,6 +8,7 @@ import { clsx } from 'clsx';
 import { motion, AnimatePresence } from 'framer-motion';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { Skeleton } from '../components/ui/Skeleton';
+import useStore from '../store/useStore';
 
 // --- Mock Data for Charts ---
 const vitalsData = [
@@ -94,6 +95,8 @@ const PatientProfile = () => {
     const [breakGlassModal, setBreakGlassModal] = useState(false);
     const [activeTab, setActiveTab] = useState('overview');
     const [isLoading, setIsLoading] = useState(true);
+    const [justification, setJustification] = useState('');
+    const logAction = useStore(state => state.logAction);
 
     // Simulate data loading
     useEffect(() => {
@@ -102,6 +105,11 @@ const PatientProfile = () => {
     }, []);
 
     const handleBreakGlass = () => {
+        if (!justification.trim()) {
+            alert('Clinical justification is mandatory for Break-Glass access.');
+            return;
+        }
+        logAction('EMERGENCY_BREAK_GLASS', 'SECURITY', { patientId: '992-8832-11', reason: justification });
         setBreakGlassModal(false);
         setIsRestricted(false);
     };
@@ -143,7 +151,11 @@ const PatientProfile = () => {
                                     <br /><br />
                                     <strong>Reason for access is required:</strong>
                                 </p>
-                                <textarea className="w-full p-3 border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 rounded-lg text-sm mb-4 outline-none focus:ring-2 focus:ring-red-500/20" placeholder="Enter clinical justification..."></textarea>
+                                <textarea 
+                                    value={justification}
+                                    onChange={e => setJustification(e.target.value)}
+                                    className="w-full p-3 border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 rounded-lg text-sm mb-4 outline-none focus:ring-2 focus:ring-red-500/20" 
+                                    placeholder="Enter clinical justification..."></textarea>
                                 <div className="flex justify-end gap-2">
                                     <button onClick={() => setBreakGlassModal(false)} className="px-4 py-2 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 font-bold text-sm rounded hover:bg-slate-200 dark:hover:bg-slate-700">Cancel</button>
                                     <button onClick={handleBreakGlass} className="px-4 py-2 bg-red-600 text-white rounded font-bold text-sm hover:bg-red-700 shadow-lg shadow-red-500/30">Confirm Access</button>
@@ -195,7 +207,12 @@ const PatientProfile = () => {
                             <button className="px-4 py-2 bg-indigo-50 dark:bg-indigo-900/20 text-indigo-600 dark:text-indigo-400 rounded-lg text-sm font-bold hover:bg-indigo-100 dark:hover:bg-indigo-900/30 transition-colors flex items-center gap-2 border border-transparent hover:border-indigo-200 dark:hover:border-indigo-800">
                                 <Activity size={16} /> Analytics
                             </button>
-                            <button className="px-4 py-2 bg-primary text-white rounded-lg text-sm font-bold hover:bg-blue-600 shadow-lg shadow-blue-500/20 transition-all flex items-center gap-2">
+                            <button 
+                                onClick={() => {
+                                    logAction('CLINICAL_ENCOUNTER_STARTED', 'CLINICAL', { patientId: 'Sarah Connor' });
+                                    alert('New clinical encounter document initialized.');
+                                }}
+                                className="px-4 py-2 bg-primary text-white rounded-lg text-sm font-bold hover:bg-blue-600 shadow-lg shadow-blue-500/20 transition-all flex items-center gap-2">
                                 <Stethoscope size={16} /> Start Encounter
                             </button>
                         </div>
@@ -349,7 +366,12 @@ const PatientProfile = () => {
                                         <span className="text-xs text-slate-400">USD</span>
                                     </div>
                                     <div className="text-xs font-bold text-slate-500 uppercase mb-4">Unbilled Estimate</div>
-                                    <button className="w-full py-2.5 bg-slate-900 dark:bg-white dark:text-slate-900 text-white rounded-lg font-bold text-sm hover:bg-slate-800 dark:hover:bg-slate-100 shadow-lg shadow-slate-500/10 transition-colors flex items-center justify-center gap-2">
+                                    <button 
+                                        onClick={() => {
+                                            logAction('COPAY_COLLECT_SUCCESS', 'FINANCE', { amount: 450 });
+                                            alert('Payment successfully authorized.');
+                                        }}
+                                        className="w-full py-2.5 bg-slate-900 dark:bg-white dark:text-slate-900 text-white rounded-lg font-bold text-sm hover:bg-slate-800 dark:hover:bg-slate-100 shadow-lg shadow-slate-500/10 transition-colors flex items-center justify-center gap-2">
                                         <CreditCard size={14} /> Collect Payment
                                     </button>
                                 </div>

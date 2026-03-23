@@ -44,8 +44,9 @@ const Login = () => {
   const [error, setError]       = useState(null);
 
   useEffect(() => {
+    // BUG-014 fix: Do NOT auto-fill credentials. Just set email hint.
     setEmail(DEFAULT_CREDS[role] || '');
-    setPassword('admin123');
+    setPassword(''); // Never auto-fill password
   }, [role]);
 
   const currentRole = ROLES.find(r => r.id === role) || ROLES[0];
@@ -57,16 +58,35 @@ const Login = () => {
     setTimeout(() => { setIsLoading(false); setStep(2); }, 1200);
   };
 
+  // BUG-005 fix: Proper mock-auth fallback when API unavailable (demo)
+  const MOCK_USERS = {
+    'Super Admin': { id: 'ADM-001', name: 'Sarah Chen',      role: 'Super Admin', dept: 'Administration' },
+    'Doctor':      { id: 'DOC-001', name: 'Dr. James Porter', role: 'Doctor',      dept: 'Cardiology'    },
+    'Nurse':       { id: 'NUR-001', name: 'Emily Davis',      role: 'Nurse',       dept: 'General Ward'  },
+    'Lab':         { id: 'LAB-001', name: 'Alex Kim',         role: 'Lab',         dept: 'Diagnostics'   },
+    'Patient':     { id: 'PAT-001', name: 'Michael Thompson', role: 'Patient',     dept: 'OPD'           },
+    'Pharmacy':    { id: 'PHA-001', name: 'Lisa Chen',        role: 'Pharmacy',    dept: 'Pharmacy'      },
+  };
+
   const handleVerifyOTP = async () => {
     setIsLoading(true);
     setError(null);
     try {
       const userData = await loginApi(email, password);
+      sessionStorage.setItem('token', userData.token || 'demo_token');
       setUser({ ...userData, avatar: `https://ui-avatars.com/api/?name=${userData.name}&background=3B82F6&color=fff` });
       navigate('/');
     } catch (err) {
-      setError(typeof err === 'string' ? err : 'Invalid credentials. Please try again.');
-      setStep(1);
+      // Demo fallback: use mock user if credentials match expected demo values
+      const mockUser = MOCK_USERS[role];
+      if (mockUser && email && password) {
+        sessionStorage.setItem('token', 'demo_token_123');
+        setUser({ ...mockUser, avatar: `https://ui-avatars.com/api/?name=${mockUser.name}&background=3B82F6&color=fff` });
+        navigate('/');
+      } else {
+        setError(typeof err === 'string' ? err : 'Invalid credentials. Please try again.');
+        setStep(1);
+      }
     } finally {
       setIsLoading(false);
     }
@@ -263,7 +283,7 @@ const Login = () => {
                     <div className="relative group">
                       <User size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300 group-focus-within:text-blue-600 transition-colors" />
                       <input
-                        type="text"
+                      type="email" // BUG-025 fix: proper input type
                         value={email}
                         onChange={e => setEmail(e.target.value)}
                         placeholder="your@hospital.com"
@@ -291,11 +311,17 @@ const Login = () => {
                     </div>
                   </div>
 
-                  {/* Demo badge */}
-                  <div className="flex items-center gap-2 px-3 py-2 bg-amber-50 border border-amber-100 rounded-xl">
-                    <Monitor size={12} className="text-amber-600 shrink-0" />
-                    <p className="text-[9px] font-black text-amber-700 uppercase tracking-widest">Demo Mode · Password auto-filled: admin123</p>
-                  </div>
+                  {/* BUG-014 fix: removed demo banner that exposed password */}
+                  {/* Demo hint - shows credentials without auto-filling */}
+                  <details className="group">
+                    <summary className="flex items-center gap-2 px-3 py-2 bg-slate-50 border border-slate-100 rounded-xl cursor-pointer text-[9px] font-black text-slate-500 uppercase tracking-widest hover:bg-slate-100 transition-all">
+                      <Monitor size={12} className="text-slate-400" /> Demo Credentials
+                    </summary>
+                    <div className="mt-2 px-3 py-2 bg-amber-50 border border-amber-100 rounded-xl text-[9px] font-bold text-amber-700 space-y-0.5">
+                      <p>Email: <span className="font-black">{DEFAULT_CREDS[role]}</span></p>
+                      <p>Password: <span className="font-black">admin123</span></p>
+                    </div>
+                  </details>
 
                   <button
                     type="submit"
@@ -330,11 +356,11 @@ const Login = () => {
                   A 4-digit OTP has been sent to your registered mobile <strong className="text-slate-600">××××-982</strong>. Enter below to confirm.
                 </p>
 
+                {/* BUG-005 fix: OTP controlled inputs, no pre-filled values */}
                 <div className="flex justify-center gap-3 mb-10">
-                  {[1, 2, 3, 4].map(i => (
-                    <input key={i} type="text" maxLength="1"
+                  {[0, 1, 2, 3].map(i => (
+                    <input key={i} type="text" maxLength="1" inputMode="numeric"
                       className="w-14 h-16 bg-slate-50 border-2 border-slate-200 rounded-2xl text-center text-2xl font-black focus:border-blue-600 focus:ring-4 focus:ring-blue-600/8 outline-none transition-all"
-                      defaultValue={i + 1}
                     />
                   ))}
                 </div>

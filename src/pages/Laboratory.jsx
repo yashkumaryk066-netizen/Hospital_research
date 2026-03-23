@@ -16,11 +16,13 @@ import {
     MoreVertical,
     Share2,
     FileSearch,
-    RefreshCw
+    RefreshCw,
+    X
 } from 'lucide-react';
 import StatCard from '../components/dashboard/StatCard';
 import { motion, AnimatePresence } from 'framer-motion';
 import { clsx } from 'clsx';
+import useStore from '../store/useStore';
 import {
     AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
     BarChart, Bar, Cell
@@ -29,6 +31,9 @@ import {
 const Laboratory = () => {
     const [selectedTab, setSelectedTab] = useState('Active Tests');
     const [searchQuery, setSearchQuery] = useState('');
+    const [criticalAlert, setCriticalAlert] = useState(true);   // BUG-001 fix
+    const [scannerActive, setScannerActive] = useState(false);  // BUG-001 fix
+    const logAction = useStore(state => state.logAction);
 
     const stats = [
         { title: 'Pending Samples', value: '42', icon: FlaskConical, color: 'bg-blue-600', trend: 'up', trendValue: '+12%' },
@@ -131,7 +136,11 @@ const Laboratory = () => {
 
                              <div className="grid grid-cols-2 gap-4">
                                  <button onClick={() => setScannerActive(false)} className="w-full py-4 bg-slate-100 text-slate-500 rounded-2xl text-[10px] font-black uppercase tracking-widest">Cancel</button>
-                                 <button onClick={() => setScannerActive(false)} className="w-full py-4 bg-blue-600 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest shadow-xl shadow-blue-500/30">Force Receive</button>
+                                 <button onClick={() => {
+                                     logAction('SAMPLE_RECEIPT_FORCE_AUTHORIZED', 'LAB', { method: 'Manual Entry' });
+                                     alert('Sample Received & Logged in LIS.');
+                                     setScannerActive(false);
+                                 }} className="w-full py-4 bg-blue-600 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest shadow-xl shadow-blue-500/30">Force Receive</button>
                              </div>
                         </div>
                     </motion.div>
@@ -221,6 +230,18 @@ const Laboratory = () => {
                                               )}>
                                                   {item.status}
                                               </span>
+                                              {item.status === 'Ready' && (
+                                                  <button 
+                                                      onClick={(e) => {
+                                                          e.stopPropagation();
+                                                          logAction('LAB_RESULTS_APPROVED', 'LAB', { labId: item.id });
+                                                          alert(`Results for ${item.id} approved and sent to EMR.`);
+                                                      }}
+                                                      className="p-1.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-all shadow-md shadow-blue-500/20"
+                                                  >
+                                                      <CheckCircle2 size={12} />
+                                                  </button>
+                                              )}
                                               <ChevronRight size={14} className="text-slate-200 group-hover:text-slate-400 transition-colors" />
                                            </div>
                                         </td>

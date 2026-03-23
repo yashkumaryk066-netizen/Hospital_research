@@ -14,15 +14,19 @@ import {
     Droplets,
     ChevronRight,
     ArrowUpRight,
-    Smartphone
+    Smartphone,
+    X,
+    CheckCircle
 } from 'lucide-react';
 import StatCard from '../components/dashboard/StatCard';
 import { motion, AnimatePresence } from 'framer-motion';
+import useStore from '../store/useStore';
 import { clsx } from 'clsx';
 
 const Physiotherapy = () => {
     const [selectedTab, setSelectedTab] = useState('Sessions');
     const [hepModal, setHepModal] = useState(false);
+    const [isSyncing, setIsSyncing] = useState(false); // BUG-019 fix
 
     const stats = [
         { title: 'Today Appointments', value: '18', icon: Calendar, color: 'bg-indigo-600', trend: 'up', trendValue: '4 New' },
@@ -32,10 +36,19 @@ const Physiotherapy = () => {
     ];
 
     const appointments = [
-        { id: 'PHY-904', patient: 'Anil Gupta', therapy: 'Neuro-Physiotherapy', time: '10:00 AM', status: 'In Session', room: 'Rehab-1', progress: 65 },
-        { id: 'PHY-905', patient: 'Seema Rao', therapy: 'Post-OP Rehab (TKR)', time: '11:15 AM', status: 'Waiting', room: 'Gym-A', progress: 20 },
-        { id: 'PHY-908', patient: 'Rahul V.', therapy: 'Spinal Adjustment', time: '12:00 PM', status: 'Scheduled', room: 'Clinic-2', progress: 0 },
+        { id: 'PHY-904', patient: 'Robert Miller', therapy: 'Neuro-Physiotherapy', time: '10:00 AM', status: 'In Session', room: 'Rehab-1', progress: 65 },
+        { id: 'PHY-905', patient: 'Sarah Jenkins', therapy: 'Post-OP Rehab (TKR)', time: '11:15 AM', status: 'Waiting', room: 'Gym-A', progress: 20 },
+        { id: 'PHY-908', patient: 'James Wilson', therapy: 'Spinal Adjustment', time: '12:00 PM', status: 'Scheduled', room: 'Clinic-2', progress: 0 },
     ];
+
+    const handleSync = () => {
+        setIsSyncing(true);
+        setTimeout(() => {
+            setIsSyncing(false);
+            setHepModal(false);
+            alert("HEP Protocols pushed successfully to Patient Mobile App. (Audit Log Entry Generated)");
+        }, 2000);
+    };
 
     return (
         <div className="space-y-6 pb-20 animate-fade-in px-4 relative">
@@ -48,7 +61,9 @@ const Physiotherapy = () => {
                         className="fixed inset-0 z-[120] bg-indigo-950/90 backdrop-blur-2xl flex items-center justify-center p-6"
                     >
                          <div className="bg-white rounded-[3rem] p-12 max-w-2xl w-full shadow-[0_0_100px_rgba(79,70,229,0.3)] space-y-10 relative">
-                             <button onClick={() => setHepModal(false)} className="absolute top-10 right-10 text-slate-300 hover:text-slate-800 transition-colors"><Smartphone size={24} /></button>
+                             <button onClick={() => setHepModal(false)} className="absolute top-10 right-10 text-slate-300 hover:text-slate-800 transition-colors">
+                                 <X size={24} />
+                             </button>
                              
                              <div className="text-center space-y-3">
                                 <h2 className="text-3xl font-black text-slate-800 tracking-tight">Home Exercise Program (HEP) Builder</h2>
@@ -76,7 +91,26 @@ const Physiotherapy = () => {
 
                              <div className="flex gap-4 pt-4">
                                 <button className="flex-1 py-4 bg-slate-100 text-slate-500 rounded-2xl text-[10px] font-black uppercase tracking-widest">Add New Exercise</button>
-                                <button onClick={() => setHepModal(false)} className="flex-1 py-4 bg-indigo-600 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest shadow-xl shadow-indigo-500/30">SYNC TO PATIENT APP</button>
+                                <button 
+                                    onClick={handleSync} 
+                                    disabled={isSyncing}
+                                    className={clsx(
+                                        "flex-[1.5] py-4 rounded-2xl text-[10px] font-black uppercase tracking-widest shadow-xl transition-all flex items-center justify-center gap-3",
+                                        isSyncing ? "bg-slate-100 text-slate-400 cursor-not-allowed" : "bg-indigo-600 text-white shadow-indigo-500/30 hover:scale-[1.02] active:scale-[0.98]"
+                                    )}
+                                >
+                                    {isSyncing ? (
+                                        <>
+                                            <div className="w-4 h-4 border-2 border-slate-300 border-t-slate-500 rounded-full animate-spin" />
+                                            Encrypting & Pushing Protocols...
+                                        </>
+                                    ) : (
+                                        <>
+                                            <Smartphone size={16} />
+                                            SYNC TO PATIENT APP
+                                        </>
+                                    )}
+                                </button>
                              </div>
                          </div>
                     </motion.div>
